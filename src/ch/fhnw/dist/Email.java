@@ -1,7 +1,7 @@
 package ch.fhnw.dist;
 
 public class Email {
-    private String content;
+    private Word[] words;
     private boolean isSpam;
 
     public void analyse() {

@@ -1,24 +1,23 @@
 package ch.fhnw.dist;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 public class Main {
 
     public static void main(String[] args) {
-		String source = "resources/ham/anlern";
+        String source = "src/ch/fhnw/dist/resources/ham/anlern/";
 
-		EmailReader er = new EmailReader(source);
+        EmailReader er = new EmailReader(source, EmailType.HAM);
+        Set<Word> allWords = new HashSet();
 
-		Email[] emails = er.getEmails();
+        List<Email> emails = er.getEmails();
+        for (Email email : emails) {
+            email.analyse();
+        }
 
-		Set<Word> words = new HashSet<Word>();
+        System.out.println(emails.size());
 
-		for (Email email : emails) {
-			words.addAll(email.getWords());
-			//email.analyse();
-		}
-
-		System.out.println(words.toString());
-	}
+    }
 }

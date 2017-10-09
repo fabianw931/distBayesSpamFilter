@@ -1,12 +1,19 @@
 package ch.fhnw.dist;
 
-import java.util.HashSet;
+import java.util.Set;
 
 public class Email {
-    private HashSet<Word> words;
-    private boolean isSpam;
 
+    private EmailType emailType;
+    private Set<String> words;
+
+    public Email(EmailType emailType, Set<String> words) {
+        this.emailType = emailType;
+        this.words = words;
+    }
+
+    
     public void analyse() {
-        System.out.println("boi");
+        System.out.println(words.size());
     }
 }

@@ -1,10 +1,12 @@
 package ch.fhnw.dist;
 
+import java.util.HashSet;
+
 public class Email {
-    private Word[] words;
+    private HashSet<Word> words;
     private boolean isSpam;
 
     public void analyse() {
-        System.out.println('boi');
+        System.out.println("boi");
     }
 }

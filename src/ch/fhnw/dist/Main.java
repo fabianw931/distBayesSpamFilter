@@ -1,8 +1,6 @@
 package ch.fhnw.dist;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 public class Main {
 
@@ -10,14 +8,32 @@ public class Main {
         String source = "src/ch/fhnw/dist/resources/ham/anlern/";
 
         EmailReader er = new EmailReader(source, EmailType.HAM);
-        Set<Word> allWords = new HashSet();
+		Map<String, Word> words = new HashMap();
 
+		// TODO remove this from main method and add it somewhere else
         List<Email> emails = er.getEmails();
         for (Email email : emails) {
-            email.analyse();
+        	for (String wordStr : email.getWords()) {
+				Word wordObj;
+
+				if (words.containsKey(wordStr)) {
+					wordObj = words.get(wordStr);
+				} else {
+					wordObj = new Word(wordStr);
+				}
+
+				if (email.getEmailType() == EmailType.SPAM) {
+					wordObj.incSpamCounter();
+				} else {
+					wordObj.incHamCounter();
+				}
+
+				words.put(wordStr, wordObj);
+			}
         }
 
-        System.out.println(emails.size());
-
+		for(String key: words.keySet()) {
+			System.out.println(words.get(key).toString());
+		}
     }
 }

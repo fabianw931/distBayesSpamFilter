@@ -16,4 +16,12 @@ public class Email {
     public void analyse() {
         System.out.println(words.size());
     }
+
+    public Set<String> getWords() {
+        return words;
+    }
+
+    public EmailType getEmailType() {
+        return emailType;
+    }
 }

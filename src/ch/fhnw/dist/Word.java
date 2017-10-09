@@ -30,4 +30,8 @@ public class Word {
     public int getHamCounter() {
         return hamCounter;
     }
+
+    public String toString() {
+        return word + " [spam: "  + spamCounter + ", ham: " + hamCounter + "]";
+    }
 }

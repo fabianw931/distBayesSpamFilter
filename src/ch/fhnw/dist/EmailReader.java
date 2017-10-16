@@ -26,8 +26,6 @@ public class EmailReader {
         for (File file : allFiles) {
 
             Set<String> words = new HashSet();
-            Map<String, Integer> wordCounters = new TreeMap<String,Integer>();
-            Set<String> significantWords = new HashSet();
 
             BufferedReader bf;
             try {
@@ -37,33 +35,10 @@ public class EmailReader {
                 while ((line = bf.readLine()) != null) {
                     String[] wordsOfLine = line.split(" ");
 
-                    for (String word : wordsOfLine) {
-                       if (wordCounters.containsKey(word)) {
-                          wordCounters.put(word, wordCounters.get(word) + 1);
-                       } else {
-                          wordCounters.put(word, 1);
-                       }
-                    }
-
                     words.addAll(Arrays.asList(wordsOfLine));
                 }
 
-
-              Map<String, Integer> topWords =
-                       wordCounters.entrySet()
-                               .stream()
-                               .sorted(Map.Entry.comparingByValue(Collections.reverseOrder()))
-                               .limit(10)
-                               .collect(Collectors.toMap(
-                                       Map.Entry::getKey,
-                                       Map.Entry::getValue,
-                                       (e1, e2) -> e1,
-                                       LinkedHashMap::new
-                               ));
-
-                significantWords = topWords.keySet();
-
-               emails.add(new Email(emailType, significantWords));
+               emails.add(new Email(emailType, words));
             } catch (IOException ex) {
                 System.out.println("not good");
             }

@@ -5,21 +5,43 @@ import java.util.*;
 public class Main {
 
     public static void main(String[] args) {
-        String source = "src/ch/fhnw/dist/resources/ham/anlern/";
-
-        EmailReader er = new EmailReader(source, EmailType.HAM);
-		String source2 = "src/ch/fhnw/dist/resources/spam/anlern/";
-
-		EmailReader er2 = new EmailReader(source2, EmailType.SPAM);
 		Map<String, Word> words = new HashMap();
 
-		// TODO remove this from main method and add it somewhere else
-        List<Email> hamEmails = er.getEmails();
-		List<Email> spamEmails = er2.getEmails();
-		List<Email> emails = hamEmails;
-		emails.addAll(spamEmails);
-        for (Email email : emails) {
-        	for (String wordStr : email.getWords()) {
+		// ham emails
+        List<Email> hamAnlernEmails = getEmails("src/ch/fhnw/dist/resources/ham/anlern/", EmailType.HAM);
+		List<Email> hamKallibrierungEmails = getEmails("src/ch/fhnw/dist/resources/ham/kallibrierung/", EmailType.HAM);
+		List<Email> hamTestEmails = getEmails("src/ch/fhnw/dist/resources/ham/test/", EmailType.HAM);
+
+		// spam emails
+		List<Email> spamAnlernEmails = getEmails("src/ch/fhnw/dist/resources/spam/anlern/", EmailType.SPAM);
+		List<Email> spamKallibrierungEmails = getEmails("src/ch/fhnw/dist/resources/spam/kallibrierung/", EmailType.SPAM);
+		List<Email> spamTestEmails = getEmails("src/ch/fhnw/dist/resources/spam/test/", EmailType.SPAM);
+
+		List<Email> anlernEmails = hamAnlernEmails;
+		anlernEmails.addAll(spamAnlernEmails);
+
+		List<Email> kallibrierungEmails = hamKallibrierungEmails;
+		kallibrierungEmails.addAll(spamKallibrierungEmails);
+
+		List<Email> testEmails = hamTestEmails;
+		testEmails.addAll(spamTestEmails);
+
+      	words = addWords(anlernEmails, words);
+      //	words = addWords(kallibrierungEmails, words);
+
+        calculateSpamProbabilities(kallibrierungEmails, words, spamKallibrierungEmails.size(), hamKallibrierungEmails.size());
+
+		System.out.println(words.size() + " Words in total");
+    }
+    private static List<Email> getEmails(String source, EmailType t) {
+    	EmailReader er = new EmailReader(source, t);
+
+    	return er.getEmails();
+	}
+
+    private static Map<String, Word> addWords(List<Email> emails, Map<String, Word> words) {
+		for (Email email : emails) {
+			for (String wordStr : email.getWords()) {
 				Word wordObj;
 
 				if (words.containsKey(wordStr)) {
@@ -36,42 +58,54 @@ public class Main {
 
 				words.put(wordStr, wordObj);
 			}
-        }
+		}
 
-        calculateSpamProbabilities(emails, words, spamEmails.size(), hamEmails.size());
-
-		System.out.println(words.size());
-    }
+		return words;
+	}
 
     private static void calculateSpamProbabilities(List<Email> emails, Map<String, Word> words, int numberOfSpamMails, int numberOfHamMails) {
 		int wrongHamCounter = 0, wrongSpamCounter = 0;
 		for (Email email : emails) {
-			double spamProbability, spamProd = 0f, hamProd = 0f;
+			double spamProbability, spamProd = 0d, hamProd = 0d;
 
 			for (String wordStr : email.getWords()) {
-				Word word = words.get(wordStr);
-
-				if (word.getSpamCounter() != 0) {
-					if (spamProd == 0f) {
-						spamProd =  (double)word.getSpamCounter() / (double)numberOfSpamMails;
-					} else {
-						spamProd = spamProd * ((double)word.getSpamCounter() / (double)numberOfSpamMails);
+				if (words.containsKey(wordStr)) {
+					Word word = words.get(wordStr);
+					if (word.getSpamCounter() == 0 && word.getHamCounter() != 0) {
+						spamProd = 0.01d;
+						continue;
 					}
-				} else {
-					spamProd = 0f;
-					break;
-				}
 
-				if (word.getHamCounter() != 0) {
-					if (hamProd == 0f) {
-						hamProd = (double)word.getHamCounter() / (double)numberOfHamMails;
+					if (word.getHamCounter() == 0 && word.getSpamCounter() != 0) {
+						hamProd = 0.1d;
+						continue;
+					}
+
+					if (word.getSpamCounter() != 0) {
+						if (spamProd == 0d) {
+							spamProd = (double)word.getSpamCounter() / (double)numberOfSpamMails;
+						} else {
+							spamProd *= ((double)word.getSpamCounter() / (double)numberOfSpamMails);
+						}
 					} else {
-						hamProd = hamProd * ((double)word.getHamCounter() / (double)numberOfHamMails);
+						//spamProd = 0d;
+						//break;
+					}
+
+					if (word.getHamCounter() != 0) {
+						if (hamProd == 0d) {
+							hamProd = (double)word.getHamCounter() / (double)numberOfHamMails;
+						} else {
+							hamProd *= ((double)word.getHamCounter() / (double)numberOfHamMails);
+						}
+					} else {
+						//hamProd = 0d;
+						//break;
 					}
 				}
 			}
 
-			spamProbability = spamProd / (spamProd + hamProd) * 100f;
+			spamProbability = spamProd / (spamProd + hamProd) * 100d;
 			spamProbability = (double)Math.round(spamProbability * 100d) / 100d;
 
 			if (spamProbability > 50 && email.getEmailType() == EmailType.HAM) {

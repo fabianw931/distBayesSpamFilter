@@ -17,22 +17,24 @@ public class Main {
 		List<Email> spamKallibrierungEmails = getEmails("src/ch/fhnw/dist/resources/spam/kallibrierung/", EmailType.SPAM);
 		List<Email> spamTestEmails = getEmails("src/ch/fhnw/dist/resources/spam/test/", EmailType.SPAM);
 
+		// anlern emails
 		List<Email> anlernEmails = hamAnlernEmails;
 		anlernEmails.addAll(spamAnlernEmails);
 
+		// kallibrierung emails
 		List<Email> kallibrierungEmails = hamKallibrierungEmails;
 		kallibrierungEmails.addAll(spamKallibrierungEmails);
 
+		// test emails
 		List<Email> testEmails = hamTestEmails;
 		testEmails.addAll(spamTestEmails);
 
       	words = addWords(anlernEmails, words);
-      //	words = addWords(kallibrierungEmails, words);
+      	words = addWords(kallibrierungEmails, words);
 
-        calculateSpamProbabilities(kallibrierungEmails, words, spamAnlernEmails.size(), hamAnlernEmails.size());
-
-		System.out.println(words.size() + " Words in total");
+        calculateSpamProbabilities(testEmails, words, spamAnlernEmails.size(), hamAnlernEmails.size());
     }
+
     private static List<Email> getEmails(String source, EmailType t) {
     	EmailReader er = new EmailReader(source, t);
 
@@ -65,60 +67,72 @@ public class Main {
 
     private static void calculateSpamProbabilities(List<Email> emails, Map<String, Word> words, int numberOfSpamMails, int numberOfHamMails) {
 		int wrongHamCounter = 0, wrongSpamCounter = 0;
+		int threshold = 48;
+		double alphaSpam = 0.000005;
+		double alphaHam = 0.0000002;
 		for (Email email : emails) {
-			double spamProbability;
-			double wordProd = 0d;
+			double hamProbability;
+			double spamProd = 0, hamProd = 0;
 			for (String wordStr : email.getWords()) {
-				double spamOccurences = 0d, hamOccurences = 0d;
+				double spamOccurences = 0, hamOccurences = 0;
 				if (words.containsKey(wordStr)) {
 					Word word = words.get(wordStr);
 					spamOccurences = (double) word.getSpamCounter() / (double) numberOfSpamMails;
 					hamOccurences = (double) word.getHamCounter() / (double) numberOfHamMails;
 				}
 
-				if (spamOccurences == 0d) {
-					spamOccurences = 0.4d;
+				if (spamOccurences == 0.0 && hamOccurences != 0.0) {
+					spamOccurences = alphaSpam;
+				} else if (hamOccurences == 0.0 && spamOccurences != 0.0) {
+					hamOccurences = alphaHam;
 				}
 
-
-				if (hamOccurences == 0d) {
-					hamOccurences = 0.2d;
+				if (spamOccurences != 0 && hamOccurences != 0) {
+					spamProd += Math.abs(Math.log(spamOccurences)); // switch to log because we get an underflow otherwise
+					hamProd += Math.abs(Math.log(hamOccurences));
 				}
-
-				//spamOccurences = (double)Math.round(spamOccurences * 100d) / 100d;
-				//hamOccurences = (double)Math.round(hamOccurences * 100d) / 100d;
-
-				//System.out.println("spamOccurences: " + spamOccurences);
-				//System.out.println("hamOccurences: " + hamOccurences);
-
-				double hamSpam = (spamOccurences * 100) / (hamOccurences * 100) / 100;
-
-				if (wordProd == 0d) {
-					wordProd = hamSpam;
-				} else {
-					wordProd = wordProd * hamSpam;
-				}
-
-				wordProd = (double)Math.round(wordProd * 100d) / 100d;
-				//System.out.println("WordProd: " + wordProd);
 			}
+			hamProbability = spamProd / (spamProd + hamProd) * 100; // apply the formula
+			hamProbability = (double)Math.round(hamProbability * 100) / 100;
 
-			spamProbability = 1.0 / (wordProd + 1) * 100;
-			spamProbability = (double)Math.round(spamProbability * 100d) / 100d;
 
-			System.out.println("Spam probability: " + spamProbability + "%" + "\t(Type: " + email.getEmailType() + ")");
-			//System.exit(0);
-
-			if (spamProbability > 50 && email.getEmailType() == EmailType.HAM) {
+			if (hamProbability < threshold && email.getEmailType() == EmailType.HAM) {
 				wrongHamCounter++;
 			}
-			if (spamProbability < 50 && email.getEmailType() == EmailType.SPAM) {
+			if (hamProbability > threshold && email.getEmailType() == EmailType.SPAM) {
 				wrongSpamCounter++;
 			}
 
-			email.setSpamProbability(spamProbability);
+			//System.out.println("Spam probability: " + hamProbability + "%" + "\t(Type: " + email.getEmailType() + ")");
+
+			email.setHamProbability(hamProbability);
+
+			// set email type based on hamProbability
+			if (hamProbability < threshold) {
+				email.setEmailType(EmailType.SPAM);
+				numberOfSpamMails++;
+			} else {
+				email.setEmailType(EmailType.HAM);
+				numberOfHamMails++;
+			}
+
+			// add words to words array
+			List<Email> el = new ArrayList<>();
+			el.add(email);
+			words = addWords(el, words);
+
 		}
-		System.out.println(wrongHamCounter + " ham emails wrongly guessed");
+		
+		System.out.println("\nThreshold: " + threshold + "% (0-" + threshold + "% = SPAM, " + threshold + "-100% = HAM)");
+		System.out.println("Alpha value for spam: " + alphaSpam);
+		System.out.println("Alpha value for ham: " + alphaHam);
+
+		System.out.println("\n" + wrongHamCounter + " ham emails wrongly guessed");
 		System.out.println(wrongSpamCounter + " spam emails wrongly guessed");
+
+		int wrongCounter = wrongHamCounter + wrongSpamCounter;
+		double successRate = (double) 100 / (double)emails.size() * (emails.size() - (double)wrongCounter);
+		successRate = (double)Math.round(successRate * 100d) / 100d;
+		System.out.println("\n" + wrongCounter + " out of " + emails.size() + " emails wrongly guessed (" + successRate + "% success rate)");
 	}
 }

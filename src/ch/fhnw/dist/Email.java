@@ -1,6 +1,5 @@
 package ch.fhnw.dist;
 
-import java.math.BigDecimal;
 import java.util.Set;
 
 public class Email {
@@ -9,9 +8,9 @@ public class Email {
     private Set<String> words;
 
     // percentage
-    // 0%: ham
-    // 100%: spam
-    private double spamProbability;
+    // 100%: ham
+    // 0%: spam
+    private double hamProbability;
 
     public Email(EmailType emailType, Set<String> words) {
         this.emailType = emailType;
@@ -23,12 +22,16 @@ public class Email {
         System.out.println(words.size());
     }
 
-    public double getSpamProbability() {
-        return spamProbability;
+    public double getHamProbability() {
+        return hamProbability;
     }
 
-    public void setSpamProbability(double spamProbability) {
-        this.spamProbability = spamProbability;
+    public void setHamProbability(double hamProbability) {
+        this.hamProbability = hamProbability;
+    }
+
+    public void setEmailType(EmailType et) {
+        this.emailType = et;
     }
 
     public Set<String> getWords() {
